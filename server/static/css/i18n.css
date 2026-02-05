@@ -1,0 +1,118 @@
+/*
+  Internationalization - CSS-based text content
+*/
+
+/* Widget Titles */
+.i18n-weather::before { content: 'Weather'; }
+[lang|="fr"] .i18n-weather::before { content: 'Météo'; }
+
+.i18n-transport::before { content: 'Transport'; }
+[lang|="fr"] .i18n-transport::before { content: 'Transport'; }
+
+.i18n-indoor::before { content: 'Indoor'; }
+[lang|="fr"] .i18n-indoor::before { content: 'Intérieur'; }
+
+.i18n-electricity::before { content: 'Electricity'; }
+[lang|="fr"] .i18n-electricity::before { content: 'Électricité'; }
+
+/* Dynamic Values */
+.i18n-feels::before { content: 'Feels like ' attr(data-value) '°C'; }
+[lang|="fr"] .i18n-feels::before { content: 'Ressenti ' attr(data-value) '°C'; }
+
+.i18n-humidity::before { content: attr(data-value) '% humidity'; }
+[lang|="fr"] .i18n-humidity::before { content: attr(data-value) '% humidité'; }
+
+/* States */
+.i18n-loading::before { content: 'Loading...'; }
+[lang|="fr"] .i18n-loading::before { content: 'Chargement...'; }
+
+.i18n-no-departures::before { content: 'No upcoming departures'; }
+[lang|="fr"] .i18n-no-departures::before { content: 'Aucun départ prévu'; }
+
+/* Weather Descriptions */
+.weather-desc[data-weather]::before { content: 'Unknown'; }
+[lang|="fr"] .weather-desc[data-weather]::before { content: 'Inconnu'; }
+
+.weather-desc[data-weather="0"]::before { content: 'Clear'; }
+[lang|="fr"] .weather-desc[data-weather="0"]::before { content: 'Dégagé'; }
+
+.weather-desc[data-weather="1"]::before { content: 'Mostly clear'; }
+[lang|="fr"] .weather-desc[data-weather="1"]::before { content: 'Plutôt dégagé'; }
+
+.weather-desc[data-weather="2"]::before { content: 'Partly cloudy'; }
+[lang|="fr"] .weather-desc[data-weather="2"]::before { content: 'Partiellement nuageux'; }
+
+.weather-desc[data-weather="3"]::before { content: 'Overcast'; }
+[lang|="fr"] .weather-desc[data-weather="3"]::before { content: 'Couvert'; }
+
+.weather-desc[data-weather="45"]::before { content: 'Fog'; }
+[lang|="fr"] .weather-desc[data-weather="45"]::before { content: 'Brouillard'; }
+
+.weather-desc[data-weather="48"]::before { content: 'Rime fog'; }
+[lang|="fr"] .weather-desc[data-weather="48"]::before { content: 'Brouillard givrant'; }
+
+.weather-desc[data-weather="51"]::before { content: 'Light drizzle'; }
+[lang|="fr"] .weather-desc[data-weather="51"]::before { content: 'Bruine légère'; }
+
+.weather-desc[data-weather="53"]::before { content: 'Drizzle'; }
+[lang|="fr"] .weather-desc[data-weather="53"]::before { content: 'Bruine'; }
+
+.weather-desc[data-weather="55"]::before { content: 'Dense drizzle'; }
+[lang|="fr"] .weather-desc[data-weather="55"]::before { content: 'Bruine dense'; }
+
+.weather-desc[data-weather="56"]::before { content: 'Light freezing drizzle'; }
+[lang|="fr"] .weather-desc[data-weather="56"]::before { content: 'Bruine verglaçante légère'; }
+
+.weather-desc[data-weather="57"]::before { content: 'Freezing drizzle'; }
+[lang|="fr"] .weather-desc[data-weather="57"]::before { content: 'Bruine verglaçante'; }
+
+.weather-desc[data-weather="61"]::before { content: 'Light rain'; }
+[lang|="fr"] .weather-desc[data-weather="61"]::before { content: 'Pluie légère'; }
+
+.weather-desc[data-weather="63"]::before { content: 'Rain'; }
+[lang|="fr"] .weather-desc[data-weather="63"]::before { content: 'Pluie'; }
+
+.weather-desc[data-weather="65"]::before { content: 'Heavy rain'; }
+[lang|="fr"] .weather-desc[data-weather="65"]::before { content: 'Pluie forte'; }
+
+.weather-desc[data-weather="66"]::before { content: 'Light freezing rain'; }
+[lang|="fr"] .weather-desc[data-weather="66"]::before { content: 'Pluie verglaçante légère'; }
+
+.weather-desc[data-weather="67"]::before { content: 'Freezing rain'; }
+[lang|="fr"] .weather-desc[data-weather="67"]::before { content: 'Pluie verglaçante'; }
+
+.weather-desc[data-weather="71"]::before { content: 'Light snow'; }
+[lang|="fr"] .weather-desc[data-weather="71"]::before { content: 'Neige légère'; }
+
+.weather-desc[data-weather="73"]::before { content: 'Snow'; }
+[lang|="fr"] .weather-desc[data-weather="73"]::before { content: 'Neige'; }
+
+.weather-desc[data-weather="75"]::before { content: 'Heavy snow'; }
+[lang|="fr"] .weather-desc[data-weather="75"]::before { content: 'Neige forte'; }
+
+.weather-desc[data-weather="77"]::before { content: 'Snow grains'; }
+[lang|="fr"] .weather-desc[data-weather="77"]::before { content: 'Neige en grains'; }
+
+.weather-desc[data-weather="80"]::before { content: 'Light showers'; }
+[lang|="fr"] .weather-desc[data-weather="80"]::before { content: 'Averses légères'; }
+
+.weather-desc[data-weather="81"]::before { content: 'Showers'; }
+[lang|="fr"] .weather-desc[data-weather="81"]::before { content: 'Averses'; }
+
+.weather-desc[data-weather="82"]::before { content: 'Heavy showers'; }
+[lang|="fr"] .weather-desc[data-weather="82"]::before { content: 'Fortes averses'; }
+
+.weather-desc[data-weather="85"]::before { content: 'Light snow showers'; }
+[lang|="fr"] .weather-desc[data-weather="85"]::before { content: 'Averses de neige légères'; }
+
+.weather-desc[data-weather="86"]::before { content: 'Snow showers'; }
+[lang|="fr"] .weather-desc[data-weather="86"]::before { content: 'Averses de neige'; }
+
+.weather-desc[data-weather="95"]::before { content: 'Thunderstorm'; }
+[lang|="fr"] .weather-desc[data-weather="95"]::before { content: 'Orage'; }
+
+.weather-desc[data-weather="96"]::before { content: 'Thunderstorm with hail'; }
+[lang|="fr"] .weather-desc[data-weather="96"]::before { content: 'Orage avec grêle'; }
+
+.weather-desc[data-weather="99"]::before { content: 'Heavy thunderstorm'; }
+[lang|="fr"] .weather-desc[data-weather="99"]::before { content: 'Orage violent'; }

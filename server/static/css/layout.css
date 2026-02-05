@@ -1,0 +1,109 @@
+/*
+  Layout - Dashboard structure, Grid, Widgets
+*/
+
+/* Dashboard Container */
+.dashboard {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--sp-md);
+}
+
+/* Header */
+.dashboard > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--sp-md) 0;
+  margin-bottom: var(--sp-md);
+}
+
+.dashboard > header h1 {
+  font-size: var(--fs-lg);
+}
+
+.dashboard > header .timestamp {
+  color: var(--c-muted);
+  font-size: var(--fs-sm);
+}
+
+/* Widget Grid */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  gap: var(--sp-md);
+  grid-auto-rows: max-content;
+}
+
+/* Widget Base */
+.widget {
+  background: var(--c-card);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-md);
+  position: relative;
+}
+
+.widget > h2 {
+  font-size: var(--fs-base);
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  padding-bottom: var(--sp-sm);
+  border-bottom: 2px solid var(--c-muted);
+}
+
+/* Widget Accent Colors */
+.widget[data-widget="weather"] > h2 { border-color: var(--c-weather); }
+.widget[data-widget="transport"] > h2 { border-color: var(--c-transport); }
+.widget[data-widget="temperature"] > h2 { border-color: var(--c-temp); }
+.widget[data-widget="electricity"] > h2 { border-color: var(--c-elec); }
+
+/* Widget Grid Placement */
+.widget[data-widget="weather"],
+.widget[data-widget="electricity"] {
+  grid-column: 1 / -1;
+}
+
+.widget[data-widget="temperature"] {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.widget[data-widget="transport"] {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+/* Main Value Display */
+.main-value {
+  font-size: var(--fs-xl);
+  font-weight: 700;
+}
+
+.widget[data-widget="weather"] .main-value { color: var(--c-weather); }
+.widget[data-widget="temperature"] .main-value { color: var(--c-temp); }
+.widget[data-widget="electricity"] .main-value { color: var(--c-elec); }
+
+.secondary-value {
+  color: var(--c-muted);
+  font-size: var(--fs-base);
+  margin-top: 0.2rem;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .widget[data-widget="temperature"],
+  .widget[data-widget="transport"] {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 500px) {
+  .main-value {
+    font-size: 1.6rem;
+  }
+}
