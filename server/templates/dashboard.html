@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StrasBoard</title>
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="/static/css/base.css">
+  <link rel="stylesheet" href="/static/css/layout.css">
+  <link rel="stylesheet" href="/static/css/components.css">
+  <link rel="stylesheet" href="/static/css/weather.css">
+  <link rel="stylesheet" href="/static/css/i18n.css">
+</head>
+
+<body>
+  <div class="dashboard" x-data="dashboard">
+    
+    <!-- Header -->
+    <header>
+      <h1>StrasBoard</h1>
+      <span class="timestamp" x-text="timestamp ? new Date(timestamp).toLocaleString() : '--'"></span>
+    </header>
+
+    <div class="grid">
+      
+      <!--
+        Weather Widget
+      -->
+      <div class="widget" data-widget="weather">
+        <h2>☀️ <span class="i18n-weather"></span></h2>
+        
+        <!-- Warning indicator (degraded mode) -->
+        <template x-if="weather.warning">
+          <div class="warning-indicator">
+            <span class="warning-icon"></span>
+            <span class="warning-text" x-text="weather.warning"></span>
+          </div>
+        </template>
+        
+        <!-- Error overlay (error-only state) -->
+        <template x-if="weather.error">
+          <div class="error-overlay">
+            <div class="error-box" x-text="weather.error"></div>
+          </div>
+        </template>
+        
+        <!-- Content (always rendered - skeleton when loading/error) -->
+        <div>
+          <!-- Current weather -->
+          <div class="weather-current">
+            <template x-if="weather.current">
+              <span class="weather-icon" 
+                    :data-weather="weather.current.code"
+                    :data-night="!weather.current.is_day || null"></span>
+            </template>
+            <template x-if="!weather.current && weather.loading">
+              <span class="weather-icon skeleton"></span>
+            </template>
+            
+            <span class="weather-temp" 
+                  :class="{ 'skeleton skeleton-text': weather.loading }"
+                  x-text="weather.current ? Math.round(weather.current.temperature) + '°C' : '--°C'"></span>
+            
+            <span class="weather-desc" 
+                  :class="{ 'skeleton skeleton-text': weather.loading }"
+                  :data-weather="weather.current?.code"></span>
+            
+            <span class="weather-feels i18n-feels" 
+                  :class="{ 'skeleton skeleton-text': weather.loading }"
+                  :data-value="weather.current ? Math.round(weather.current.feels_like) : '--'"
+                  :style="weather.loading ? 'width: 6rem' : ''"></span>
+          </div>
+          
+          <!-- Weather graph -->
+          <div class="weather-graph" x-ref="weatherGraph">
+            <template x-if="weather.loading">
+              <div class="skeleton" style="height: 105px; border-radius: 4px;"></div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!--
+        Temperature Widget
+      -->
+      <div class="widget" data-widget="temperature">
+        <h2>🌡️ <span class="i18n-indoor"></span></h2>
+        
+        <!-- Warning indicator (degraded mode) -->
+        <template x-if="temperature.warning">
+          <div class="warning-indicator">
+            <span class="warning-icon"></span>
+            <span class="warning-text" x-text="temperature.warning"></span>
+          </div>
+        </template>
+        
+        <!-- Error overlay (error-only state) -->
+        <template x-if="temperature.error">
+          <div class="error-overlay">
+            <div class="error-box" x-text="temperature.error"></div>
+          </div>
+        </template>
+        
+        <!-- Content -->
+        <div>
+          <div class="main-value" 
+               :class="{ 'skeleton skeleton-text': temperature.loading }"
+               x-text="temperature.value + '°C'"
+               :style="temperature.loading ? 'width: 5rem' : ''"></div>
+          <div class="secondary-value i18n-humidity" 
+               :class="{ 'skeleton skeleton-text': temperature.loading }"
+               :data-value="temperature.humidity"
+               :style="temperature.loading ? 'width: 6rem; margin-top: 0.5rem' : ''"></div>
+        </div>
+      </div>
+
+      <!--
+        Transport Widget
+      -->
+      <div class="widget" data-widget="transport">
+        <h2>🚋 <span class="i18n-transport"></span></h2>
+        
+        <!-- Warning indicator (degraded mode) -->
+        <template x-if="transport.warning">
+          <div class="warning-indicator">
+            <span class="warning-icon"></span>
+            <span class="warning-text" x-text="transport.warning"></span>
+          </div>
+        </template>
+        
+        <!-- Error overlay (error-only state) -->
+        <template x-if="transport.error">
+          <div class="error-overlay">
+            <div class="error-box" x-text="transport.error"></div>
+          </div>
+        </template>
+        
+        <!-- Stops list (always rendered) -->
+        <div>
+          <template x-for="stop in transport.stops" :key="stop.id">
+            <template x-for="(dest, destIdx) in (stop.destinations.length ? stop.destinations : [{ name: '', departures: [] }])" :key="destIdx">
+              <div class="stop" 
+                   :class="{ 'skeleton': transport.loading }"
+                   @click="fetchLiveTransport(stop.id)">
+                
+                <div class="stop-info">
+                  <span class="line-badge"
+                        :class="{ 'skeleton-badge': transport.loading }"
+                        :style="!transport.loading ? `background:${stop.color};color:${stop.colorText}` : ''"
+                        x-text="stop.line"></span>
+                  <span class="stop-name" x-text="stop.name"></span>
+                  <span class="stop-dest" x-text="dest.name" x-show="dest.name"></span>
+                </div>
+                
+                <span class="times">
+                  <template x-if="!transport.loading && getVisibleDepartures(dest.departures).length === 0">
+                    <span class="no-departures i18n-no-departures"></span>
+                  </template>
+                  <template x-for="dep in getVisibleDepartures(dest.departures)" :key="dep.time">
+                    <span class="time" 
+                          :class="{ 'scheduled': !dep.realtime }"
+                          x-text="formatTime(dep.time)"></span>
+                  </template>
+                </span>
+              </div>
+            </template>
+          </template>
+        </div>
+      </div>
+
+      <!--
+        Electricity Widget
+      -->
+      <div class="widget" data-widget="electricity">
+        <h2>⚡ <span class="i18n-electricity"></span></h2>
+        
+        <!-- Warning indicator (degraded mode) -->
+        <template x-if="electricity.warning">
+          <div class="warning-indicator">
+            <span class="warning-icon"></span>
+            <span class="warning-text" x-text="electricity.warning"></span>
+          </div>
+        </template>
+        
+        <!-- Error overlay (error-only state) -->
+        <template x-if="electricity.error">
+          <div class="error-overlay">
+            <div class="error-box" x-text="electricity.error"></div>
+          </div>
+        </template>
+        
+        <!-- Content (always rendered) -->
+        <div>
+          <!-- Header: Monthly bars + Tempo -->
+          <div class="elec-header">
+            
+            <!-- Monthly horizontal bars -->
+            <div class="hbar-chart">
+              <!-- Previous month -->
+              <template x-if="electricity.prevMonth">
+                <div class="hbar-row prev" :class="{ 'skeleton': electricity.loading }">
+                  <span class="hbar-label" x-text="electricity.prevMonth.label"></span>
+                  <div class="hbar-track">
+                    <div class="hbar" :style="`width:${electricity.prevMonth.pct}%`">
+                      <template x-for="seg in electricity.prevMonth.segments" :key="seg.key">
+                        <div class="seg" 
+                             :data-tariff="seg.key.toLowerCase()" 
+                             :style="`flex:${seg.value}`"
+                             :title="seg.value + ' kWh'"></div>
+                      </template>
+                    </div>
+                    <span class="hbar-val" 
+                          :style="`left:${electricity.prevMonth.pct}%`"
+                          x-text="electricity.prevMonth.total"></span>
+                  </div>
+                </div>
+              </template>
+              
+              <!-- Current month -->
+              <div class="hbar-row" :class="{ 'skeleton': electricity.loading }">
+                <span class="hbar-label" x-text="electricity.currentMonth.label"></span>
+                <div class="hbar-track">
+                  <div class="hbar" :style="`width:${electricity.currentMonth.pct}%`">
+                    <template x-for="seg in electricity.currentMonth.segments" :key="seg.key">
+                      <div class="seg" 
+                           :data-tariff="seg.key.toLowerCase()" 
+                           :style="`flex:${seg.value}`"
+                           :title="seg.value + ' kWh'"></div>
+                    </template>
+                  </div>
+                  <!-- Estimation dashed line -->
+                  <template x-if="electricity.estimation && electricity.estimation.pct > electricity.currentMonth.pct">
+                    <div class="hbar-est" 
+                         :style="`left:${electricity.currentMonth.pct}%;width:${electricity.estimation.pct - electricity.currentMonth.pct}%`"></div>
+                  </template>
+                  <span class="hbar-val" 
+                        :style="`left:${electricity.currentMonth.pct}%`"
+                        x-text="electricity.currentMonth.total"></span>
+                  <template x-if="electricity.estimation && electricity.estimation.pct > electricity.currentMonth.pct">
+                    <span class="hbar-val est" 
+                          :style="`left:max(${electricity.estimation.pct}%, calc(${electricity.currentMonth.pct}% + 1.6rem))`"
+                          x-text="electricity.estimation.total"></span>
+                  </template>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Tempo badges -->
+            <div class="tempo">
+              <span class="tempo-day">
+                <span class="tempo-label" x-text="relativeDay(0)"></span>
+                <span class="tempo-badge" 
+                      :class="{ 'skeleton skeleton-badge': tempo.loading }"
+                      :data-color="tempoColor(0)"></span>
+              </span>
+              <span class="tempo-day">
+                <span class="tempo-label" x-text="relativeDay(1)"></span>
+                <span class="tempo-badge" 
+                      :class="{ 'skeleton skeleton-badge': tempo.loading }"
+                      :data-color="tempoColor(1)"></span>
+              </span>
+            </div>
+          </div>
+          
+          <!-- Daily vertical bars -->
+          <div class="vbar-chart">
+            <template x-for="(day, i) in electricity.last7" :key="day.date">
+              <div class="vbar-col">
+                <div class="vbar-group">
+                  <!-- Previous week bar -->
+                  <template x-if="electricity.prev7[i]">
+                    <div class="vbar prev">
+                      <span class="vbar-val" x-text="electricity.prev7[i].total"></span>
+                      <div class="vbar-stack" :style="`height:${barHeight(electricity.prev7[i].total)}px`">
+                        <template x-for="seg in electricity.prev7[i].segments" :key="seg.key">
+                          <div class="seg" 
+                               :data-tariff="seg.key.toLowerCase()" 
+                               :style="`flex:${seg.value}`"></div>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+                  
+                  <!-- Current week bar -->
+                  <div class="vbar current" :class="{ 'skeleton': electricity.loading }">
+                    <span class="vbar-val" x-text="day.total"></span>
+                    <div class="vbar-stack" :style="`height:${barHeight(day.total)}px`">
+                      <template x-for="seg in day.segments" :key="seg.key">
+                        <div class="seg" 
+                             :data-tariff="seg.key.toLowerCase()" 
+                             :style="`flex:${seg.value}`"></div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+                <span class="vbar-label" x-text="formatDay(day.date)"></span>
+              </div>
+            </template>
+          </div>
+          
+          <!-- Legend -->
+          <div class="legend">
+            <template x-for="tariff in electricity.usedTariffs" :key="tariff">
+              <span class="legend-item" :data-tariff="tariff.toLowerCase()"></span>
+            </template>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script defer src="/static/js/alpine.min.js"></script>
+  <script src="/static/js/graph.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
