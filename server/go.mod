@@ -1,4 +1,4 @@
-module strasboard
+module strasboard/server
 
 go 1.21
 
