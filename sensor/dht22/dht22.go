@@ -75,7 +75,6 @@ func (s *Sensor) ReadWithRetry(n int) (Reading, error) {
 	for i := 0; i < n; i++ {
 		var r Reading
 		if r, err = s.Read(); err == nil {
-			fmt.Printf("dht22: read succeeded after %d attempts\t%+v\n", i+1, r)
 			return r, nil
 		}
 	}
