@@ -1,13 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"slices"
 	"strconv"
-	"sync"
 	"time"
 
 	"strasboard/sensor/dht22"
@@ -15,96 +15,57 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const maxBuf = 5
-
-// config holds values loaded from environment variables.
 type config struct {
 	Pin          string
 	Location     string
-	Port         string
+	ServerURL    string
+	AuthToken    string
 	ReadInterval time.Duration
 	MaxRetries   int
+	Debug        bool
 }
 
 func loadConfig() config {
 	godotenv.Load()
-	return config{
-		Pin:          env("GPIO_PIN", "GPIO18"),
-		Location:     env("LOCATION", ""),
-		Port:         env("PORT", "8080"),
-		ReadInterval: time.Duration(envInt("READ_INTERVAL", 5)) * time.Second,
-		MaxRetries:   envInt("MAX_RETRIES", 11),
+	cfg := config{
+		Pin:          getEnv("GPIO_PIN", ""),
+		Location:     getEnv("LOCATION", ""),
+		ServerURL:    getEnv("SERVER_URL", ""),
+		AuthToken:    getEnv("AUTH_TOKEN", ""),
+		ReadInterval: time.Duration(getEnvInt("READ_INTERVAL", 5)) * time.Second,
+		MaxRetries:   getEnvInt("MAX_RETRIES", 11),
+		Debug:        os.Getenv("DEBUG") == "1",
 	}
+	if cfg.ServerURL == "" {
+		log.Fatal("config: SERVER_URL not set")
+	}
+	if cfg.Pin == "" {
+		log.Fatal("config: GPIO_PIN not set")
+	}
+	return cfg
 }
 
-func env(key, fallback string) string {
+func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
 	}
 	return fallback
 }
 
-func envInt(key string, fallback int) int {
+func getEnvInt(key string, fallback int) int {
 	if v, err := strconv.Atoi(os.Getenv(key)); err == nil {
 		return v
 	}
 	return fallback
 }
 
-// buffer holds the last maxBuf sensor readings.
-type buffer struct {
-	mu  sync.RWMutex
-	buf []dht22.Reading
+type payload struct {
+	Temperature float64 `json:"temperature"`
+	Humidity    float64 `json:"humidity"`
+	Location    string  `json:"location"`
 }
 
-func (b *buffer) push(r dht22.Reading) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.buf = append(b.buf, r)
-	if len(b.buf) > maxBuf {
-		b.buf = b.buf[1:]
-	}
-}
-
-// median returns a representative reading:
-//   - 5 values: median of all 5
-//   - 3–4 values: median of last 3
-//   - 1–2 values: most recent value
-//   - 0 values: ok is false
-func (b *buffer) median() (dht22.Reading, bool) {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-
-	n := len(b.buf)
-	if n == 0 {
-		return dht22.Reading{}, false
-	}
-	if n <= 2 {
-		return b.buf[n-1], true
-	}
-
-	var window []dht22.Reading
-	if n == 5 {
-		window = slices.Clone(b.buf)
-	} else {
-		window = slices.Clone(b.buf[n-3:])
-	}
-
-	temps := make([]float64, len(window))
-	hums := make([]float64, len(window))
-	for i, v := range window {
-		temps[i] = v.Temperature
-		hums[i] = v.Humidity
-	}
-	slices.Sort(temps)
-	slices.Sort(hums)
-
-	mid := len(window) / 2
-	return dht22.Reading{
-		Temperature: temps[mid],
-		Humidity:    hums[mid],
-	}, true
-}
+var client = &http.Client{Timeout: 10 * time.Second}
 
 func main() {
 	cfg := loadConfig()
@@ -114,47 +75,55 @@ func main() {
 		log.Fatalf("sensor init: %v", err)
 	}
 
-	var buf buffer
-	go poll(sensor, &buf, cfg)
+	log.Printf("polling DHT22 every %v, posting to %s", cfg.ReadInterval, cfg.ServerURL)
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", handle(&buf, cfg.Location))
-
-	log.Printf("listening on :%s", cfg.Port)
-	log.Fatal(http.ListenAndServe(":"+cfg.Port, mux))
-}
-
-// poll reads the sensor in a loop and pushes results into buf.
-func poll(sensor *dht22.Sensor, buf *buffer, cfg config) {
 	for {
 		r, err := sensor.ReadWithRetry(cfg.MaxRetries)
 		if err != nil {
-			log.Printf("poll: %v", err)
-		} else {
-			buf.push(r)
+			log.Printf("read: %v", err)
+			time.Sleep(cfg.ReadInterval)
+			continue
 		}
+
+		p := payload{
+			Temperature: r.Temperature,
+			Humidity:    r.Humidity,
+			Location:    cfg.Location,
+		}
+
+		if err := post(cfg, p); err != nil {
+			log.Printf("post: %v", err)
+		} else if cfg.Debug {
+			log.Printf("sent: %.1f °C, %.1f %%, %s", p.Temperature, p.Humidity, p.Location)
+		}
+
 		time.Sleep(cfg.ReadInterval)
 	}
 }
 
-// handle returns an HTTP handler that serves the median reading as JSON.
-func handle(buf *buffer, location string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		reading, ok := buf.median()
-		if !ok {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			json.NewEncoder(w).Encode(map[string]string{
-				"error": "no data available",
-			})
-			return
-		}
-
-		json.NewEncoder(w).Encode(map[string]any{
-			"temperature": reading.Temperature,
-			"humidity":    reading.Humidity,
-			"location":    location,
-		})
+func post(cfg config, p payload) error {
+	body, err := json.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("marshal: %w", err)
 	}
+
+	req, err := http.NewRequest("POST", cfg.ServerURL, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if cfg.AuthToken != "" {
+		req.Header.Set("Authorization", "Bearer "+cfg.AuthToken)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("send: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("server returned %d", resp.StatusCode)
+	}
+	return nil
 }

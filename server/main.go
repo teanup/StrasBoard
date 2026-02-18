@@ -61,6 +61,9 @@ func main() {
 		})
 	})
 
+	// Sensor push endpoint
+	mux.HandleFunc("/api/temperature/push", sources["temperature"].(*TemperatureSource).HandlePush())
+
 	// Individual endpoints
 	for name, src := range sources {
 		mux.HandleFunc("/api/"+name, sourceHandler(src, cache))
