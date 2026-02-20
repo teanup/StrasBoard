@@ -22,12 +22,14 @@
         <div class="widget-header">
           <h2><span>🌤️</span> <span data-i18n="weather"></span></h2>
           <template x-if="weather.warning">
-            <span class="widget-warning"><span x-text="weather.warning"></span></span>
+            <span class="badge widget-badge">!</span>
           </template>
         </div>
         <div class="widget-content">
-          <template x-if="weather.error">
-            <div class="widget-error"><span x-text="weather.error"></span></div>
+          <template x-if="weather.error || weather.warning">
+            <div class="widget-overlay" :data-level="weather.error ? 'error' : 'warning'">
+              <span x-text="weather.error || weather.warning"></span>
+            </div>
           </template>
           <template x-if="!weather.data">
             <div class="widget-loading"><span data-i18n="loading"></span></div>
@@ -51,12 +53,14 @@
         <div class="widget-header">
           <h2><span>🌡️</span> <span data-i18n="temperature"></span></h2>
           <template x-if="temperature.warning">
-            <span class="widget-warning"><span x-text="temperature.warning"></span></span>
+            <span class="badge widget-badge">!</span>
           </template>
         </div>
         <div class="widget-content">
-          <template x-if="temperature.error">
-            <div class="widget-error"><span x-text="temperature.error"></span></div>
+          <template x-if="temperature.error || temperature.warning">
+            <div class="widget-overlay" :data-level="temperature.error ? 'error' : 'warning'">
+              <span x-text="temperature.error || temperature.warning"></span>
+            </div>
           </template>
           <template x-if="!temperature.data">
             <div class="widget-loading"><span data-i18n="loading"></span></div>
@@ -76,12 +80,14 @@
         <div class="widget-header">
           <h2><span>🚋</span> <span data-i18n="transport"></span></h2>
           <template x-if="transport.warning">
-            <span class="widget-warning"><span x-text="transport.warning"></span></span>
+            <span class="badge widget-badge">!</span>
           </template>
         </div>
         <div class="widget-content">
-          <template x-if="transport.error">
-            <div class="widget-error"><span x-text="transport.error"></span></div>
+          <template x-if="transport.error || transport.warning">
+            <div class="widget-overlay" :data-level="transport.error ? 'error' : 'warning'">
+              <span x-text="transport.error || transport.warning"></span>
+            </div>
           </template>
           <template x-if="!transport.data">
             <div class="widget-loading"><span data-i18n="loading"></span></div>
@@ -90,8 +96,9 @@
             <div>
               <template x-for="stop in transport.data.stops" :key="stop.id + stop.destination">
                 <div @click="refreshStop(stop.id)" style="cursor:pointer; margin-bottom:0.25rem">
-                  <strong :style="`background:${stop.color}; color:${stop.colorText}; padding:0 0.3em; border-radius:3px`"
-                          x-text="stop.line"></strong>
+                  <span class="badge line-badge"
+                          :style="`background:${stop.color}; color:${stop.colorText}`"
+                          x-text="stop.line"></span>
                   <span x-text="stop.stop"></span>
                   <span x-show="stop.destination" x-text="'→ ' + stop.destination" style="opacity:0.7"></span>
                   <span>
@@ -116,12 +123,14 @@
         <div class="widget-header">
           <h2><span>⚡</span> <span data-i18n="electricity"></span></h2>
           <template x-if="electricity.warning">
-            <span class="widget-warning"><span x-text="electricity.warning"></span></span>
+            <span class="badge widget-badge">!</span>
           </template>
         </div>
         <div class="widget-content">
-          <template x-if="electricity.error">
-            <div class="widget-error"><span x-text="electricity.error"></span></div>
+          <template x-if="electricity.error || electricity.warning">
+            <div class="widget-overlay" :data-level="electricity.error ? 'error' : 'warning'">
+              <span x-text="electricity.error || electricity.warning"></span>
+            </div>
           </template>
           <template x-if="!electricity.data">
             <div class="widget-loading"><span data-i18n="loading"></span></div>
@@ -146,12 +155,14 @@
         <div class="widget-header">
           <h2><span>📅</span> <span data-i18n="tempo"></span></h2>
           <template x-if="tempo.warning">
-            <span class="widget-warning"><span x-text="tempo.warning"></span></span>
+            <span class="badge widget-badge">!</span>
           </template>
         </div>
         <div class="widget-content">
-          <template x-if="tempo.error">
-            <div class="widget-error"><span x-text="tempo.error"></span></div>
+          <template x-if="tempo.error || tempo.warning">
+            <div class="widget-overlay" :data-level="tempo.error ? 'error' : 'warning'">
+              <span x-text="tempo.error || tempo.warning"></span>
+            </div>
           </template>
           <template x-if="!tempo.data">
             <div class="widget-loading"><span data-i18n="loading"></span></div>
