@@ -118,7 +118,7 @@ document.addEventListener('alpine:init', () => {
     init() {
       document.documentElement.lang = navigator.language || 'en';
       this.refresh();
-      setInterval(() => this.refresh(), 20_000);
+      setInterval(() => this.refresh(), 10_000);
     },
 
     async refresh() {
