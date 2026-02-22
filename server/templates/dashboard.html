@@ -147,14 +147,50 @@
           </template>
           <template x-if="electricity.data">
             <div>
-              <div><strong>Monthly</strong></div>
-              <template x-for="m in electricity.data.months" :key="m.date">
-                <div x-text="m.date + ': BU=' + (m.buhc+m.buhp) + ' BC=' + (m.bchc+m.bchp) + ' R=' + (m.rhc+m.rhp) + ' kWh'"></div>
-              </template>
-              <div style="margin-top:0.5em"><strong>Daily (last 14)</strong></div>
-              <template x-for="d in electricity.data.days" :key="d.date">
-                <div x-text="d.date + ': ' + (d.buhc+d.buhp+d.bchc+d.bchp+d.rhc+d.rhp) + ' kWh'"></div>
-              </template>
+              <div style="margin-top: var(--space-xs); margin-bottom: var(--space-md)">
+                <div class="bar-group bar-h">
+                  <template x-for="(bar, bi) in electricity.data.monthBars" :key="bi">
+                    <div class="bar-item">
+                      <span class="bar-title" x-text="bar.title"></span>
+                      <div class="bar" :class="bi < electricity.data.monthBars.length - 1 && 'bar-dim'">
+                        <template x-for="(seg, si) in barSegments(bar.segments)" :key="si">
+                          <div class="bar-seg" :data-tariff="seg.tariff" :title="seg.value + ' kWh'" :style="segStyle(seg, electricity.data.monthMax)"></div>
+                        </template>
+                        <span class="bar-label" :data-value="barTotal(bar)"></span>
+                        <template x-if="bar.ext">
+                          <div class="bar-ext" :style="extStyle(bar, electricity.data.monthMax)"></div>
+                        </template>
+                        <template x-if="showExtLabel(bar, electricity.data.monthMax)">
+                          <span class="bar-label" :data-value="barTotal(bar) + bar.ext"></span>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+              <div class="bar-group bar-v" style="height: 12rem; margin-bottom: var(--space-md)">
+                <template x-for="(group, gi) in electricity.data.dayGroups" :key="gi">
+                  <div class="bar-item">
+                    <template x-for="(bar, bi) in group.bars" :key="bi">
+                      <div class="bar" :class="bar.dim && 'bar-dim'">
+                        <template x-for="(seg, si) in barSegments(bar.segments)" :key="si">
+                          <div class="bar-seg" :data-tariff="seg.tariff" :title="seg.value + ' kWh'" :style="segStyle(seg, electricity.data.dayMax)"></div>
+                        </template>
+                        <span class="bar-label" :data-value="barTotal(bar)"></span>
+                      </div>
+                    </template>
+                    <span class="bar-title" x-text="group.title"></span>
+                  </div>
+                </template>
+              </div>
+              <div class="bar-legend">
+                <template x-for="key in electricity.data.legend" :key="key">
+                  <span class="bar-legend-item">
+                    <span class="bar-legend-swatch" :data-tariff="key"></span>
+                    <span class="bar-legend-label" :data-tariff="key"></span>
+                  </span>
+                </template>
+              </div>
             </div>
           </template>
         </div>

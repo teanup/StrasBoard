@@ -10,6 +10,22 @@
  */
 
 /*
+  TARIFF HELPERS
+  Stacking order follows property order from normalize().
+  Colors and labels are handled in CSS via [data-tariff] selectors.
+*/
+
+function toSegments(entry) {
+  return Object.entries(entry)
+    .filter(([k]) => k !== 'date')
+    .map(([tariff, value]) => ({ tariff, value }));
+}
+
+function entryTotal(entry) {
+  return toSegments(entry).reduce((sum, s) => sum + s.value, 0);
+}
+
+/*
   RESPONSE PARSING
 */
 
@@ -60,18 +76,70 @@ function parseTransport(resp) {
 function parseElectricity(resp) {
   const normalize = (entry) => ({
     date: entry.date,
-    bchc: entry.BCHC ?? 0,
-    bchp: entry.BCHP ?? 0,
-    buhc: entry.BUHC ?? 0,
-    buhp: entry.BUHP ?? 0,
-    rhc: entry.RHC ?? 0,
-    rhp: entry.RHP ?? 0,
+    hp: entry.HP ?? 0, hc: entry.HC ?? 0,
+    rhp: entry.RHP ?? 0, rhc: entry.RHC ?? 0,
+    bchp: entry.BCHP ?? 0, bchc: entry.BCHC ?? 0,
+    buhp: entry.BUHP ?? 0, buhc: entry.BUHC ?? 0,
   });
 
-  return parseResponse(resp, (d) => ({
-    days: (d.days ?? []).slice(-14).map(normalize),
-    months: (d.months ?? []).slice(-2).map(normalize),
-  }));
+  return parseResponse(resp, (d) => {
+    const days = (d.days ?? []).slice(-14).map(normalize);
+    const months = (d.months ?? []).slice(-2).map(normalize);
+    return formatElectricity(months, days);
+  });
+}
+
+function formatElectricity(months, days) {
+  // --- Monthly bars (horizontal) ---
+  const monthBars = months.map((m, i) => {
+    const d = new Date(m.date + '-15');
+    const title = d.toLocaleDateString(undefined, { month: 'long' });
+    const segments = toSegments(m);
+    const bar = { title, segments };
+
+    // Extension: current month only (last item)
+    if (i === months.length - 1 && days.length > 0) {
+      const total = entryTotal(m);
+      const daysInMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      // Count days with data in this month
+      const monthStr = m.date;
+      const daysWithData = days.filter(day => day.date.startsWith(monthStr)).length;
+      if (daysWithData > 0 && daysWithData < daysInMonth) {
+        const projected = Math.round(total * daysInMonth / daysWithData);
+        bar.ext = projected - total;
+      }
+    }
+    return bar;
+  });
+  const monthMax = monthBars.reduce((mx, b) => {
+    const total = b.segments.reduce((s, seg) => s + seg.value, 0);
+    return Math.max(mx, total + (b.ext ?? 0));
+  }, 0);
+
+  // --- Daily bars (vertical, grouped by weekday) ---
+  // Last 7 days + 7 days before that for comparison
+  const current7 = days.slice(-7);
+  const prev7 = days.slice(-14, -7);
+
+  const dayGroups = current7.map((day, i) => {
+    const d = new Date(day.date + 'T12:00:00');
+    const title = ' ' + d.toLocaleDateString(undefined, { weekday: 'short' })
+      + ' ' + d.getDate();
+    const bars = [];
+    // Previous week's same-offset day (dimmed)
+    if (prev7[i]) bars.push({ segments: toSegments(prev7[i]), dim: true });
+    // Current day
+    bars.push({ segments: toSegments(day) });
+    return { title, bars };
+  });
+  const dayMax = days.slice(-14).reduce((mx, d) => Math.max(mx, entryTotal(d)), 0);
+
+  // --- Legend: only tariffs with nonzero values ---
+  const allEntries = [...months, ...days];
+  const legend = Object.keys(allEntries[0] ?? {})
+    .filter(k => k !== 'date' && allEntries.some(e => e[k] > 0));
+
+  return { monthBars, monthMax, dayGroups, dayMax, legend };
 }
 
 // Tempo
@@ -108,7 +176,7 @@ document.addEventListener('alpine:init', () => {
     init() {
       document.documentElement.lang = navigator.language || 'en';
       this.refresh();
-      setInterval(() => this.refresh(), 10_000);
+      setInterval(() => this.refresh(), 60_000);
       setInterval(() => { this.now = Date.now(); }, 1_000);
     },
 
@@ -156,7 +224,7 @@ document.addEventListener('alpine:init', () => {
     // Transport: filter past departures and limit to 3 upcoming
     getActiveDepartures(departures, _now) {
       return departures
-        .filter((dep) => new Date(dep.time).getTime() - _now > -10_000)
+        .filter((dep) => new Date(dep.time).getTime() - _now > -20_000)
         .slice(0, 3);
     },
 
@@ -169,6 +237,29 @@ document.addEventListener('alpine:init', () => {
       const hours = Math.floor(mins / 60);
       if (hours > 0) return `${hours}h${String(mins % 60).padStart(2, '0')}`;
       return `${mins} min`;
+    },
+
+    // Bar chart helpers
+    barSegments(segments) {
+      return segments.filter(s => s.value > 0);
+    },
+
+    segStyle(seg, max) {
+      if (max <= 0) return 'display:none';
+      return `flex-basis:${(seg.value / max) * 100}%`;
+    },
+
+    extStyle(bar, max) {
+      if (!bar.ext || max <= 0) return 'display:none';
+      return `flex-basis:${(bar.ext / max) * 100}%`;
+    },
+
+    barTotal(bar) {
+      return bar.segments.reduce((sum, s) => sum + s.value, 0);
+    },
+
+    showExtLabel(bar, max) {
+      return bar.ext > 0 && (bar.ext / max) > 0.1;
     },
   }));
 });
