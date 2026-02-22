@@ -2,8 +2,9 @@
  * StrasBoard - Dashboard Application
  *
  * Architecture:
- * - Each widget has: { error, warning, data }
+ * - Each widget has: { data, error }
  * - data is null until first successful fetch (loading state)
+ * - data + error together = degraded mode (cached data, fresh error)
  * - API response parsing is done per-source in parse functions
  * - Alpine.js renders directly from these clean structures
  */
@@ -14,21 +15,9 @@
 
 // Generic response handler
 function parseResponse(resp, transform) {
-  const hasData = resp?.data != null;
-  const errorMsg = resp?.error || null;
-
-  if (hasData) {
-    return {
-      data: transform(resp.data),
-      error: null,
-      warning: errorMsg,
-    };
-  }
-  return {
-    data: null,
-    error: errorMsg || 'No data',
-    warning: null,
-  };
+  const data = resp?.data != null ? transform(resp.data) : null;
+  const error = resp?.error || (!data ? 'No data' : null);
+  return { data, error };
 }
 
 // Weather
@@ -107,18 +96,20 @@ document.addEventListener('alpine:init', () => {
 
     // Global
     timestamp: null,
+    now: Date.now(),
 
     // Widget states
-    weather:     { data: null, error: null, warning: null },
-    temperature: { data: null, error: null, warning: null },
-    transport:   { data: null, error: null, warning: null },
-    electricity: { data: null, error: null, warning: null },
-    tempo:       { data: null, error: null, warning: null },
+    weather:     { data: null, error: null },
+    temperature: { data: null, error: null },
+    transport:   { data: null, error: null },
+    electricity: { data: null, error: null },
+    tempo:       { data: null, error: null },
 
     init() {
       document.documentElement.lang = navigator.language || 'en';
       this.refresh();
       setInterval(() => this.refresh(), 10_000);
+      setInterval(() => { this.now = Date.now(); }, 1_000);
     },
 
     async refresh() {
@@ -143,7 +134,6 @@ document.addEventListener('alpine:init', () => {
         const resp = await fetch(`/api/transport/live?id=${stopId}`);
         const result = await resp.json();
         if (result?.data?.destinations) {
-          // Replace departures for all rows matching this stop id
           const newDests = result.data.destinations;
           this.transport.data?.stops?.forEach((row) => {
             if (row.id !== stopId) return;
@@ -154,14 +144,28 @@ document.addEventListener('alpine:init', () => {
       } catch (e) {
         console.error('Live transport fetch failed:', e);
       }
+
+      // Flash all rows with this stop id
+      document.querySelectorAll(`.transport-row[data-stop-id="${stopId}"]`).forEach((el) => {
+        el.classList.remove('refreshed');
+        void el.offsetWidth;
+        el.classList.add('refreshed');
+      });
     },
 
-    // Format an ISO departure time as relative duration
-    formatDeparture(isoTime) {
-      const diff = (new Date(isoTime) - Date.now()) / 1000;
-      if (diff < -15) return null;
-      if (diff < 60) return '<1 min';
-      const mins = Math.floor(diff / 60);
+    // Transport: filter past departures and limit to 3 upcoming
+    getActiveDepartures(departures, _now) {
+      return departures
+        .filter((dep) => new Date(dep.time).getTime() - _now > -10_000)
+        .slice(0, 3);
+    },
+
+    // Format departure as countdown
+    formatDeparture(isoTime, _now) {
+      const secs = Math.round((new Date(isoTime).getTime() - _now) / 1000);
+      if (secs <= 20) return '';
+      if (secs < 60) return `${secs} s`;
+      const mins = Math.floor(secs / 60);
       const hours = Math.floor(mins / 60);
       if (hours > 0) return `${hours}h${String(mins % 60).padStart(2, '0')}`;
       return `${mins} min`;
