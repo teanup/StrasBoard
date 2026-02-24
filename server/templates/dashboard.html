@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StrasBoard</title>
   <link rel="stylesheet" href="/static/css/app.css">
 </head>
+
 <body>
   <div class="dashboard" x-data="dashboard">
 
@@ -17,7 +19,6 @@
 
     <div class="widgets">
 
-      <!-- Weather -->
       <article class="widget" data-type="weather">
         <div class="widget-header">
           <h2><span>🌤️</span> <span data-i18n="weather"></span></h2>
@@ -48,7 +49,6 @@
         </div>
       </article>
 
-      <!-- Temperature -->
       <article class="widget" data-type="temperature">
         <div class="widget-header">
           <h2><span>🌡️</span> <span data-i18n="temperature"></span></h2>
@@ -82,7 +82,6 @@
         </div>
       </article>
 
-      <!-- Transport -->
       <article class="widget" data-type="transport">
         <div class="widget-header">
           <h2><span>🚋</span> <span data-i18n="transport"></span></h2>
@@ -114,7 +113,7 @@
                   </div>
                   <div class="transport-times">
                     <template x-for="dep in getActiveDepartures(stop.departures, now)" :key="dep.time">
-                      <span class="transport-time" :class="!dep.realtime && 'scheduled'"
+                      <span class="transport-time has-tooltip" :class="!dep.realtime && 'scheduled'" :data-value="new Date(dep.time).toLocaleTimeString('fr')"
                             x-text="formatDeparture(dep.time, now)"></span>
                     </template>
                     <template x-if="!getActiveDepartures(stop.departures, now).length">
@@ -128,7 +127,6 @@
         </div>
       </article>
 
-      <!-- Electricity -->
       <article class="widget" data-type="electricity">
         <div class="widget-header">
           <h2><span>⚡</span> <span data-i18n="electricity"></span></h2>
@@ -147,14 +145,14 @@
           </template>
           <template x-if="electricity.data">
             <div>
-              <div style="margin-top: var(--space-xs); margin-bottom: var(--space-md)">
+              <div class="bar-h-container">
                 <div class="bar-group bar-h">
                   <template x-for="(bar, bi) in electricity.data.monthBars" :key="bi">
                     <div class="bar-item">
                       <span class="bar-title" x-text="bar.title"></span>
                       <div class="bar" :class="bi < electricity.data.monthBars.length - 1 && 'bar-dim'">
                         <template x-for="(seg, si) in barSegments(bar.segments)" :key="si">
-                          <div class="bar-seg" :data-tariff="seg.tariff" :title="seg.value + ' kWh'" :style="segStyle(seg, electricity.data.monthMax)"></div>
+                          <div class="bar-seg has-tooltip" :data-tariff="seg.tariff" :data-value="seg.value" :style="segStyle(seg, electricity.data.monthMax)"></div>
                         </template>
                         <span class="bar-label" :data-value="barTotal(bar)"></span>
                         <template x-if="bar.ext">
@@ -168,13 +166,13 @@
                   </template>
                 </div>
               </div>
-              <div class="bar-group bar-v" style="height: 12rem; margin-bottom: var(--space-md)">
+              <div class="bar-group bar-v bar-v-container">
                 <template x-for="(group, gi) in electricity.data.dayGroups" :key="gi">
                   <div class="bar-item">
                     <template x-for="(bar, bi) in group.bars" :key="bi">
                       <div class="bar" :class="bar.dim && 'bar-dim'">
                         <template x-for="(seg, si) in barSegments(bar.segments)" :key="si">
-                          <div class="bar-seg" :data-tariff="seg.tariff" :title="seg.value + ' kWh'" :style="segStyle(seg, electricity.data.dayMax)"></div>
+                          <div class="bar-seg has-tooltip" :data-tariff="seg.tariff" :data-value="seg.value" :style="segStyle(seg, electricity.data.dayMax)"></div>
                         </template>
                         <span class="bar-label" :data-value="barTotal(bar)"></span>
                       </div>
@@ -196,7 +194,6 @@
         </div>
       </article>
 
-      <!-- Tempo -->
       <article class="widget" data-type="tempo">
         <div class="widget-header">
           <h2><span>📅</span> <span data-i18n="tempo"></span></h2>
@@ -234,4 +231,5 @@
   <script defer src="/static/js/alpine.min.js"></script>
   <script src="/static/js/app.js"></script>
 </body>
+
 </html>
