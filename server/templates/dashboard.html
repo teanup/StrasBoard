@@ -39,10 +39,19 @@
             <div>
               <template x-if="weather.data.graph">
                 <div class="graph">
-                  <div class="graph-fill" :style="graphStyle(weather.data.graph.points)"></div>
-                  <div class="graph-points">
-                    <template x-for="pt in weather.data.graph.points" :key="pt.x">
-                      <div class="graph-point has-tooltip" :data-value="pt.label"></div>
+                  <template x-for="line in weather.data.graph.yLines" :key="line.y">
+                    <div class="graph-line-y" :style="`bottom:${line.y}%`">
+                      <span x-text="line.label"></span>
+                    </div>
+                  </template>
+                  <div class="graph-fill" :style="weather.data.graph.fill"></div>
+                  <div class="graph-segments">
+                    <template x-for="seg in weather.data.graph.segments" :key="index">
+                      <div class="graph-seg has-tooltip" :class="seg.main && 'main'" :data-value="seg.label">
+                        <template x-if="seg.tick">
+                          <span class="graph-tick" x-text="seg.tick"></span>
+                        </template>
+                      </div>
                     </template>
                   </div>
                 </div>

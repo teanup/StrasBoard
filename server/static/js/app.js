@@ -24,19 +24,51 @@ function formatWeather(current, hourly, daily) {
   let graph = null;
   if (hourly.length > 1) {
     const temps = hourly.map(h => h.temperature);
-    const min = Math.min(...temps);
-    const max = Math.max(...temps);
-    const range = max - min || 1;
-    const points = hourly.map((h, i) => {
+    const dataMin = Math.min(...temps);
+    const dataMax = Math.max(...temps);
+
+    const ceilMax = Math.ceil(dataMax + 0.5);
+    const floorMin = Math.floor(dataMin - 0.5);
+    const r = ceilMax - floorMin;
+    const gap = r <= 6 ? 1 : r <= 14 ? 2 : r <= 24 ? 4 : 5;
+    const top = Math.round(ceilMax / gap) * gap;
+    const bottom = -Math.round(-floorMin / gap) * gap;
+    const graphMax = Math.max(top, dataMax + gap / 2);
+    const graphMin = Math.min(bottom, dataMin - gap / 2);
+    const graphRange = graphMax - graphMin;
+
+    const yLines = [];
+    for (let v = bottom; v <= top; v += gap) {
+      yLines.push({ y: (v - graphMin) / graphRange * 100, label: `${v}°` });
+    }
+
+    const toY = (t) => (100 - (t - graphMin) / graphRange * 100).toFixed(2);
+    const segments = [];
+    const fillCoords = ['0% 100%'];
+    for (let i = 0; i < hourly.length - 1; i++) {
+      const h = hourly[i];
       const d = new Date(h.time);
-      const hh = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      return {
-        x: i / (hourly.length - 1) * 100,
-        y: (h.temperature - min) / range * 100,
-        label: `${hh} · ${Math.round(h.temperature * 10) / 10}°C · code ${h.code}`,
+      const hour = d.getHours();
+      const hh = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+      if (i === 0) fillCoords.push(`0% ${toY(h.temperature)}%`);
+      fillCoords.push(`${(i + 1) / (hourly.length - 1) * 100}% ${toY(hourly[i + 1].temperature)}%`);
+
+      const seg = {
+        label: `${hh} \u00b7 ${Math.round(h.temperature * 10) / 10}\u00b0C \u00b7 code ${h.code}`,
       };
-    });
-    graph = { points };
+      if (hour === 0) {
+        seg.tick = d.toLocaleDateString(undefined, { weekday: 'short' }) + ' ' + d.getDate();
+        seg.main = true;
+      } else if (hour === 8 || hour === 14 || hour === 20) {
+        seg.tick = `${hour}h`;
+      }
+      segments.push(seg);
+    }
+    fillCoords.push('100% 100%');
+    const fill = `clip-path:polygon(${fillCoords.join(',')})`;
+
+    graph = { fill, segments, yLines };
   }
   return { current, hourly, daily, graph };
 }
@@ -213,11 +245,6 @@ document.addEventListener('alpine:init', () => {
 
     showExtLabel(bar, max) {
       return bar.ext > 0 && bar.ext / max > 0.05;
-    },
-
-    graphStyle(points) {
-      const coords = points.map(p => `${p.x}% ${100 - p.y}%`).join(', ');
-      return `clip-path: polygon(0% 100%, ${coords}, 100% 100%)`;
     },
   }));
 });
