@@ -207,3 +207,7 @@ I also created 10 extra icons, fully inspired by the original pack, in order to 
 | Light snow showers     |    85    | [![Light snow showers day](server/static/icon/snow_showers_light_day.svg)](server/static/icon/snow_showers_light_day.svg) [![Light snow showers night](server/static/icon/snow_showers_light_night.svg)](server/static/icon/snow_showers_light_night.svg) |
 
 These additional icons are also licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
+## StrasBoard icon
+
+The favicon and app icon were created using the [**`Strasbourg Cathedral`**](https://landicons.com/shop/strasbourg-cathedral-france/) icon from *LandIcons*, licensed under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).

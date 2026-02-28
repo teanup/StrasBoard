@@ -212,7 +212,8 @@ func (s *TransportSource) fetchDepartures(id int) ([]Destination, error) {
 		for _, visit := range resp.ServiceDelivery.StopMonitoringDelivery[0].MonitoredStopVisit {
 			journey := visit.MonitoredVehicleJourney
 			depTime, err := time.Parse(time.RFC3339, journey.MonitoredCall.ExpectedDepartureTime)
-			if err != nil || depTime.Before(time.Now()) {
+			// TODO: check if depTime.Before(time.Now()) condition is necessary
+			if err != nil {
 				continue
 			}
 			dest := journey.DestinationName
