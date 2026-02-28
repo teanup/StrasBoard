@@ -17,8 +17,6 @@ type Config struct {
 	TransportAPIKey string
 	TransportStops  string
 
-	TemperatureSensorURL string
-
 	ElectricityAPIURL   string
 	ElectricityClientID string
 	ElectricityUsername string
@@ -42,8 +40,6 @@ func LoadConfig() *Config {
 		TransportAPIURL: getEnv("TRANSPORT_API_URL", ""),
 		TransportAPIKey: getEnv("TRANSPORT_API_KEY", ""),
 		TransportStops:  getEnv("TRANSPORT_STOPS", ""),
-
-		TemperatureSensorURL: getEnv("TEMPERATURE_SENSOR_URL", ""),
 
 		ElectricityAPIURL:   getEnv("ELECTRICITY_API_URL", ""),
 		ElectricityClientID: getEnv("ELECTRICITY_CLIENT_ID", ""),
