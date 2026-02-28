@@ -17,7 +17,7 @@ import (
 
 const (
 	electricityRetryTTL    = 1 * time.Hour
-	electricityRefreshHour = 4 // TODO: confirm hour with log below
+	electricityRefreshHour = 1
 )
 
 type ElectricitySource struct {
@@ -91,7 +91,6 @@ func (s *ElectricitySource) Fetch() *Response {
 	yesterday := now.AddDate(0, 0, -1).Format(time.DateOnly)
 	hasYesterday := len(data.Days) > 0 && data.Days[len(data.Days)-1].Date >= yesterday
 	if hasYesterday {
-		log.Printf("[electricity] yesterday's data became available at %s", now.Format(time.RFC3339)) // TODO: remove log
 		expiresAt := time.Date(now.Year(), now.Month(), now.Day(), electricityRefreshHour, 0, 0, 0, s.loc).AddDate(0, 0, 1)
 		return NewResponseUntil(data, expiresAt)
 	}

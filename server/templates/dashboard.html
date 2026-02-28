@@ -5,6 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StrasBoard</title>
+  <link rel="icon" type="image/png" href="/static/favicon/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/static/favicon/favicon.svg" />
+  <link rel="shortcut icon" href="/static/favicon/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-title" content="StrasBoard" />
+  <link rel="manifest" href="/static/favicon/site.webmanifest" />
   <link rel="stylesheet" href="/static/css/app.css">
 </head>
 
@@ -37,6 +43,18 @@
           </template>
           <template x-if="weather.data">
             <div>
+              <template x-if="weather.data.current">
+                <div class="weather-current"
+                     :data-wmo="weather.data.current.code"
+                     :class="{ night: !weather.data.current.is_day }">
+                  <span class="weather-current-icon"></span>
+                  <span class="weather-current-temp"
+                        x-text="Math.round(weather.data.current.temperature * 10) / 10 + '°C'"></span>
+                  <span class="weather-current-feels"
+                        x-text="Math.round(weather.data.current.feels_like * 10) / 10 + '°'"></span>
+                  <span class="weather-current-text"></span>
+                </div>
+              </template>
               <template x-if="weather.data.graph">
                 <div class="graph">
                   <template x-for="line in weather.data.graph.yLines" :key="line.y">
@@ -44,16 +62,38 @@
                       <span x-text="line.label"></span>
                     </div>
                   </template>
-                  <div class="graph-fill" :style="weather.data.graph.fill"></div>
-                  <div class="graph-segments">
-                    <template x-for="seg in weather.data.graph.segments" :key="index">
-                      <div class="graph-seg has-tooltip" :class="seg.main && 'main'" :data-value="seg.label">
-                        <template x-if="seg.tick">
-                          <span class="graph-tick" x-text="seg.tick"></span>
+                  <div class="graph-scroll">
+                    <div class="graph-area">
+                      <div class="graph-sky" :style="weather.data.graph.sky"></div>
+                      <div class="graph-fill" :style="weather.data.graph.fill"></div>
+                      <div class="graph-now" :style="`left:${weather.data.graph.nowPct}%`"></div>
+                      <div class="graph-segments">
+                        <template x-for="seg in weather.data.graph.segments" :key="index">
+                          <div class="graph-seg has-tooltip"
+                               :class="{ main: seg.main, night: seg.night }"
+                               :data-value="seg.label" :data-wmo="seg.wmo">
+                            <template x-if="seg.tick">
+                              <span class="graph-tick" x-text="seg.tick"></span>
+                            </template>
+                          </div>
                         </template>
                       </div>
-                    </template>
+                    </div>
                   </div>
+                </div>
+              </template>
+              <template x-if="weather.data.forecast.length">
+                <div class="forecast">
+                  <template x-for="f in weather.data.forecast" :key="f.day">
+                    <div class="forecast-day" :data-wmo="f.code">
+                      <span class="forecast-name" x-text="f.day"></span>
+                      <span class="forecast-icon"></span>
+                      <span class="forecast-temps">
+                        <span class="forecast-max" x-text="f.max + '°'"></span>
+                        <span class="forecast-min" x-text="f.min + '°'"></span>
+                      </span>
+                    </div>
+                  </template>
                 </div>
               </template>
             </div>

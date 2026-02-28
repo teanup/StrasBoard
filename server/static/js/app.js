@@ -20,6 +20,16 @@ const parseWeather = (resp) => parseResponse(resp, (d) => {
   return formatWeather(d.current ?? null, d.hourly ?? [], d.daily ?? []);
 });
 
+const SKY_VARS = Object.fromEntries([
+  ...[0, 1].map(c => [c, 'transparent']),
+  ...[2, 3].map(c => [c, 'var(--sky-cloudy)']),
+  ...[45, 48].map(c => [c, 'var(--sky-fog)']),
+  ...[51, 53, 55, 61, 63, 65, 80, 81, 82].map(c => [c, 'var(--sky-rain)']),
+  ...[56, 57, 66, 67].map(c => [c, 'var(--sky-freezing)']),
+  ...[71, 73, 75, 77, 85, 86].map(c => [c, 'var(--sky-snow)']),
+  ...[95, 96, 99].map(c => [c, 'var(--sky-thunder)']),
+]);
+
 function formatWeather(current, hourly, daily) {
   let graph = null;
   if (hourly.length > 1) {
@@ -39,38 +49,71 @@ function formatWeather(current, hourly, daily) {
 
     const yLines = [];
     for (let v = bottom; v <= top; v += gap) {
-      yLines.push({ y: (v - graphMin) / graphRange * 100, label: `${v}°` });
+      yLines.push({ y: (v - graphMin) / graphRange * 100, label: `${v}\u00b0` });
     }
 
+    const n = hourly.length;
+    const numSeg = n - 1;
     const toY = (t) => (100 - (t - graphMin) / graphRange * 100).toFixed(2);
-    const segments = [];
-    const fillCoords = ['0% 100%'];
-    for (let i = 0; i < hourly.length - 1; i++) {
-      const h = hourly[i];
+    const curve = hourly.map((h, i) =>
+      `${(i / numSeg * 100).toFixed(2)}% ${toY(h.temperature)}%`
+    ).join(',');
+    const fill = `clip-path:polygon(0% 100%,${curve},100% 100%)`;
+
+    // Sky gradient (merge consecutive same-category stops, blur transitions)
+    const skyStops = [];
+    let prevSky = null;
+    for (let i = 0; i < numSeg; i++) {
+      const sky = SKY_VARS[hourly[i].code] ?? 'transparent';
+      const pct = i / numSeg * 100;
+      if (sky !== prevSky) {
+        if (prevSky !== null) skyStops.push(`${prevSky} ${Math.max(0, pct - 1).toFixed(2)}%`);
+        skyStops.push(`${sky} ${Math.min(100, pct + 1).toFixed(2)}%`);
+        prevSky = sky;
+      }
+    }
+    if (prevSky !== null) skyStops.push(`${prevSky} 100%`);
+    const skyStyle = `clip-path:polygon(0% 0%,${curve},100% 0%);` +
+      `background:linear-gradient(to right,${skyStops.join(',')})`;
+
+    const segments = hourly.slice(0, -1).map((h, i) => {
       const d = new Date(h.time);
       const hour = d.getHours();
       const hh = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-
-      if (i === 0) fillCoords.push(`0% ${toY(h.temperature)}%`);
-      fillCoords.push(`${(i + 1) / (hourly.length - 1) * 100}% ${toY(hourly[i + 1].temperature)}%`);
-
       const seg = {
-        label: `${hh} \u00b7 ${Math.round(h.temperature * 10) / 10}\u00b0C \u00b7 code ${h.code}`,
+        wmo: h.code,
+        night: !h.is_day,
+        label: `${hh} \u00b7 ${Math.round(h.temperature * 10) / 10}\u00b0C`,
       };
       if (hour === 0) {
-        seg.tick = d.toLocaleDateString(undefined, { weekday: 'short' }) + ' ' + d.getDate();
+        seg.tick = d.toLocaleDateString(undefined, { weekday: 'short' });
         seg.main = true;
       } else if (hour === 8 || hour === 14 || hour === 20) {
         seg.tick = `${hour}h`;
       }
-      segments.push(seg);
-    }
-    fillCoords.push('100% 100%');
-    const fill = `clip-path:polygon(${fillCoords.join(',')})`;
+      return seg;
+    });
 
-    graph = { fill, segments, yLines };
+    // Current time position as percentage
+    const t0 = new Date(hourly[0].time).getTime();
+    const tN = new Date(hourly[n - 1].time).getTime();
+    const nowMs = Date.now();
+    const nowPct = Math.max(0, Math.min(100, (nowMs - t0) / (tN - t0) * 100));
+
+    graph = { fill, sky: skyStyle, segments, yLines, nowPct };
   }
-  return { current, hourly, daily, graph };
+
+  const forecast = daily.map(d => {
+    const date = new Date(d.date + 'T12:00:00');
+    return {
+      day: date.toLocaleDateString(undefined, { weekday: 'short' }),
+      code: d.code,
+      min: Math.round(d.temp_min),
+      max: Math.round(d.temp_max),
+    };
+  });
+
+  return { current, graph, forecast };
 }
 
 const parseTemperature = (resp) => parseResponse(resp, (d) => ({
