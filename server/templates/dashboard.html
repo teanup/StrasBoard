@@ -37,13 +37,16 @@
           </template>
           <template x-if="weather.data">
             <div>
-              <div>
-                <strong x-text="Math.round(weather.data.current?.temperature ?? 0) + '°C'"></strong>
-                <span x-text="'(feels ' + Math.round(weather.data.current?.feels_like ?? 0) + '°C)'"></span>
-                <span x-text="'- code ' + (weather.data.current?.code ?? '?')"></span>
-                <span x-text="weather.data.current?.is_day ? '☀' : '🌙'"></span>
-              </div>
-              <div x-text="weather.data.hourly.length + ' hourly points, ' + weather.data.daily.length + ' daily forecasts'"></div>
+              <template x-if="weather.data.graph">
+                <div class="graph">
+                  <div class="graph-fill" :style="graphStyle(weather.data.graph.points)"></div>
+                  <div class="graph-points">
+                    <template x-for="pt in weather.data.graph.points" :key="pt.x">
+                      <div class="graph-point has-tooltip" :data-value="pt.label"></div>
+                    </template>
+                  </div>
+                </div>
+              </template>
             </div>
           </template>
         </div>

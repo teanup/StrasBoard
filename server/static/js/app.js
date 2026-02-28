@@ -16,11 +16,30 @@ function parseResponse(resp, transform) {
   return { data, error };
 }
 
-const parseWeather = (resp) => parseResponse(resp, (d) => ({
-  current: d.current ?? null,
-  hourly: d.hourly ?? [],
-  daily: d.daily ?? [],
-}));
+const parseWeather = (resp) => parseResponse(resp, (d) => {
+  return formatWeather(d.current ?? null, d.hourly ?? [], d.daily ?? []);
+});
+
+function formatWeather(current, hourly, daily) {
+  let graph = null;
+  if (hourly.length > 1) {
+    const temps = hourly.map(h => h.temperature);
+    const min = Math.min(...temps);
+    const max = Math.max(...temps);
+    const range = max - min || 1;
+    const points = hourly.map((h, i) => {
+      const d = new Date(h.time);
+      const hh = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return {
+        x: i / (hourly.length - 1) * 100,
+        y: (h.temperature - min) / range * 100,
+        label: `${hh} · ${Math.round(h.temperature * 10) / 10}°C · code ${h.code}`,
+      };
+    });
+    graph = { points };
+  }
+  return { current, hourly, daily, graph };
+}
 
 const parseTemperature = (resp) => parseResponse(resp, (d) => ({
   temperature: d.temperature,
@@ -194,6 +213,11 @@ document.addEventListener('alpine:init', () => {
 
     showExtLabel(bar, max) {
       return bar.ext > 0 && bar.ext / max > 0.05;
+    },
+
+    graphStyle(points) {
+      const coords = points.map(p => `${p.x}% ${100 - p.y}%`).join(', ');
+      return `clip-path: polygon(0% 100%, ${coords}, 100% 100%)`;
     },
   }));
 });
